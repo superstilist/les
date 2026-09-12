@@ -2,8 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from typing import Optional
+import crud
 
 DATABASE_URL = "sqlite:///./users.db"
 
@@ -31,35 +32,31 @@ class User(BaseModel):
 app = FastAPI(title="Users API")
 
 
-def get_db() -> Session:
+@app.get("/users/{user_id}", response_model=User)
+def get_user(user_id: int) -> User:
     db = SessionLocal()
     try:
-        yield db
+        user = crud.get_user(db, user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
     finally:
         db.close()
 
 
-@app.get("/users/{user_id}", response_model=User)
-def get_user(user_id: int) -> User:
-    db = next(get_db())
-    user = db.query(UserModel).filter(UserModel.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return User(id=user.id, username=user.username, email=user.email)
-
-
 @app.get("/users", response_model=list[User])
 def list_users() -> list[User]:
-    db = next(get_db())
-    users = db.query(UserModel).all()
-    return [User(id=user.id, username=user.username, email=user.email) for user in users]
+    db = SessionLocal()
+    try:
+        return crud.get_users(db)
+    finally:
+        db.close()
 
 
 @app.post("/create_user", response_model=User)
 def create_user(user: User) -> User:
-    db = next(get_db())
-    db_user = UserModel(username=user.username, email=user.email)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return User(id=db_user.id, username=db_user.username, email=db_user.email)
+    db = SessionLocal()
+    try:
+        return crud.create_user(db, user)
+    finally:
+        db.close()
