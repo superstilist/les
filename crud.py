@@ -15,6 +15,7 @@ def get_user(db: Session, user_id: int) -> Optional[UserSchema]:
 def get_users(db: Session, skip: int = 0, limit: int = 100) -> list[UserSchema]:
     from main import UserModel
     users = db.query(UserModel).offset(skip).limit(limit).all()
+
     return [UserSchema(id=user.id, username=user.username, email=user.email) for user in users]
 
 
