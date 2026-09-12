@@ -20,6 +20,7 @@ def get_users(db: Session, skip: int = 0, limit: int = 100) -> list[UserSchema]:
 
 def create_user(db: Session, user: UserSchema) -> UserSchema:
     from main import UserModel
+
     db_user = UserModel(username=user.username, email=user.email)
     db.add(db_user)
     db.commit()
